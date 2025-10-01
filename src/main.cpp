@@ -1,60 +1,165 @@
 #include <Arduino.h>
-#include "DHT.h"
+#include <WebServer.h>
+#include <ArduinoJson.h>
+#include "DHTesp.h"
+#include <WiFiManager.h>
 
-#define LED_QUARTO 22
-#define LED_SALA 23
-#define ADC_VREF_mV    3300.0 // in millivolt
-#define ADC_RESOLUTION 4096.0
+DHTesp dht;
+#define  DHT11_PIN 33       
 
-#define DHTPIN 33
-#define DHTTYPE DHT11
+// Web server running on port 80
+WebServer server(80);
 
-DHT dht(DHTPIN, DHTTYPE);
+float temperature;
+float humidity;
+int led1Status = 3;
+bool led2Status = false;
+
+// set the pin for the PWM LED
+const int ledPinPWM = 23;  // 16 corresponds to GPIO16
+
+// set the PWM properties
+const int freq = 5000;
+const int ledChannel = 0;
+const int resolution = 8;
+
+// set the pin for the Boolean LED
+const int ledPinBool = 22;  // 17 corresponds to GPIO17
+
+
+
+unsigned long measureDelay = 3000;                //    NOT LESS THAN 2000!!!!!   
+unsigned long lastTimeRan;
+
+StaticJsonDocument<1024> jsonDocument;
+
+char buffer[1024];
+
+void handlePost() {
+  if (server.hasArg("plain") == false) {
+    //handle error here
+  }
+  String body = server.arg("plain");
+  deserializeJson(jsonDocument, body);
+  
+  // Get RGB components
+  led1Status = jsonDocument["led1Status"];
+  led2Status = jsonDocument["led2Status"];
+
+  // Respond to the client
+  server.send(200, "application/json", "{}");
+}
+
+void createJson(char *name, float value, char *unit) {  
+  jsonDocument.clear();
+  jsonDocument["name"] = name;
+  jsonDocument["value"] = value;
+  jsonDocument["unit"] = unit;
+  serializeJson(jsonDocument, buffer);  
+}
+ 
+void addJsonObject(char *name, float value, char *unit) {
+  JsonObject obj = jsonDocument.createNestedObject();
+  obj["name"] = name;
+  obj["value"] = value;
+  obj["unit"] = unit; 
+}
+
+
+void getValues() {
+  Serial.println("Get all values");
+  jsonDocument.clear(); // Clear json buffer
+  addJsonObject("temperature", temperature, "°C");
+  addJsonObject("humidity", humidity, "%");
+  addJsonObject("led1Status", led1Status, "%");
+  addJsonObject("led2Status", led2Status, "boolean");
+
+  serializeJson(jsonDocument, buffer);
+  server.send(200, "application/json", buffer);
+}
+
+void setupApi() {
+  server.on("/getValues", getValues);
+  server.on("/setStatus", HTTP_POST, handlePost);
+ 
+  // start server
+  server.begin();
+}
+
+
+
+
 
 void setup() {
+  // put your setup code here, to run once:
+
   Serial.begin(9600);
+  // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
+  delay(1500); 
 
-  pinMode(LED_QUARTO, OUTPUT);
-  pinMode(LED_SALA, OUTPUT);
 
-  digitalWrite(LED_QUARTO, 1);
-  digitalWrite(LED_SALA, 1);
+  WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
+  // it is a good practice to make sure your code sets wifi mode how you want it.
 
-  dht.begin();
+  //WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
+  WiFiManager wm;
+
+  // reset settings - wipe stored credentials for testing
+  // these are stored by the esp library
+  // wm.resetSettings();
+
+  // Automatically connect using saved credentials,
+  // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+  // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+  // then goes into a blocking loop awaiting configuration and will return success result
+
+  bool res;
+  // res = wm.autoConnect(); // auto generated AP name from chipid
+  // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+  res = wm.autoConnect("DaltonEsp32","12345671"); // password protected ap
+
+  if(!res) {
+      Serial.println("Failed to connect");
+      ESP.restart();
+  } 
+  else {
+      //if you get here you have connected to the WiFi    
+      Serial.println("Connected...yeey :)");
+  }
+
+  dht.setup(DHT11_PIN, DHTesp::DHT11); // Connect DHT sensor to GPIO 14 
+
+  setupApi();
+
+  // configure LED PWM functionalitites
+  ledcSetup(ledChannel, freq, resolution);
+  
+  // attach the channel to the GPIO to be controlled
+  ledcAttachPin(ledPinPWM, ledChannel);
+
+  pinMode(ledPinBool, OUTPUT);
 }
 
 void loop() {
-  // Wait a few seconds between measurements.
-  delay(2000);
+  // put your main code here, to run repeatedly:
+  server.handleClient();
 
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  float f = dht.readTemperature(true);
+    // measurements every measureDelay ms
+  if (millis() > lastTimeRan + measureDelay)  {
+    humidity = dht.getHumidity();
+    temperature = dht.getTemperature();
+    lastTimeRan = millis();
 
-  // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t) || isnan(f)) {
-    Serial.println(F("Failed to read from DHT sensor!"));
-    return;
-  }
+   }
 
-  // Compute heat index in Fahrenheit (the default)
-  float hif = dht.computeHeatIndex(f, h);
-  // Compute heat index in Celsius (isFahreheit = false)
-  float hic = dht.computeHeatIndex(t, h, false);
+  ledcWrite(ledChannel, led1Status);
 
-  Serial.print(F("Humidity: "));
-  Serial.print(h);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(t);
-  Serial.print(F("°C "));
-  Serial.print(f);
-  Serial.print(F("°F  Heat index: "));
-  Serial.print(hic);
-  Serial.print(F("°C "));
-  Serial.print(hif);
-  Serial.println(F("°F"));
+
+  if(led2Status) {
+    digitalWrite(ledPinBool, HIGH);
+  } else {
+    digitalWrite(ledPinBool, LOW);
+  } 
+
+
 }
