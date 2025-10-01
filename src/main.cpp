@@ -4,6 +4,7 @@
 #include "DHTesp.h"
 #include <WiFiManager.h>
 
+
 DHTesp dht;
 #define  DHT11_PIN 33       
 
@@ -20,7 +21,7 @@ const int ledPinPWM = 23;  // 16 corresponds to GPIO16
 
 // set the PWM properties
 const int freq = 5000;
-const int ledChannel = 0;
+const int ledChannel = 1;
 const int resolution = 8;
 
 // set the pin for the Boolean LED
@@ -77,17 +78,25 @@ void getValues() {
   serializeJson(jsonDocument, buffer);
   server.send(200, "application/json", buffer);
 }
+void playbrazino();
 
 void setupApi() {
   server.on("/getValues", getValues);
   server.on("/setStatus", HTTP_POST, handlePost);
+  server.on("/brazino", playbrazino);
  
   // start server
   server.begin();
 }
 
 
+int buzzer = 27; // Pino do buzzer
 
+void tocaNota(int freq, int duracao) {
+  //duracao += 100;
+  tone(buzzer, freq, duracao);
+  delay(duracao * 1.3); // Pequena pausa entre as notas
+}
 
 
 void setup() {
@@ -160,6 +169,40 @@ void loop() {
   } else {
     digitalWrite(ledPinBool, LOW);
   } 
+}
 
+const int Tone[13] = {
+  262, 294, 330, 349, 392, 440, 494,
+  523, 587, 659, 698, 784, 0
+};
 
+const byte melody[] = {
+  5, 6, 8, 6, 10, 10, 9,
+  5, 6, 8, 6, 9, 9, 8, 7, 6,
+  5, 6, 8, 6, 8, 9, 7, 6, 5, 5, 5, 9, 8,
+  5, 6, 8, 6, 10, 10, 9,
+  5, 6, 8, 6, 12, 7, 8, 7, 6,
+  5, 6, 8, 6, 8, 9, 7, 6, 5, 5, 5, 9, 8
+};
+
+const byte beats[] = {
+  1, 1, 1, 1, 3, 3, 3,
+  1, 1, 1, 1, 3, 2, 2, 1, 3,
+  1, 1, 1, 1, 3, 2, 3, 1, 3, 3, 3, 3, 5,
+  1, 1, 1, 1, 3, 3, 3,
+  1, 1, 1, 1, 3, 2, 2, 1, 3,
+  1, 1, 1, 1, 3, 2, 3, 1, 3, 3, 3, 3, 5
+};
+
+void playbrazino(){
+  for (int i = 0; i < sizeof(melody); i++) {
+    tone(buzzer, Tone[melody[i] - 1], beats[i] * 150);
+  }
+  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Rick</title></head>"
+                "<body style='text-align:center;'>"
+                "<h1>Never Gonna Give You Up 🎵</h1>"
+                "<img src='https://c.tenor.com/yheo1GGu3FwAAAAd/tenor.gif' alt='Rick Astley' style='max-width:90%;height:auto;'>"
+                "</body></html>";
+  
+  server.send(200, "text/html", html);
 }
