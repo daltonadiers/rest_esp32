@@ -78,12 +78,12 @@ void getValues() {
   serializeJson(jsonDocument, buffer);
   server.send(200, "application/json", buffer);
 }
-void playbrazino();
+void playRebolado();
 
 void setupApi() {
   server.on("/getValues", getValues);
   server.on("/setStatus", HTTP_POST, handlePost);
-  server.on("/brazino", playbrazino);
+  server.on("/rebolado", playRebolado);
  
   // start server
   server.begin();
@@ -194,7 +194,7 @@ const byte beats[] = {
   1, 1, 1, 1, 3, 2, 3, 1, 3, 3, 3, 3, 5
 };
 
-void playbrazino(){
+void playRebolado(){
   for (int i = 0; i < sizeof(melody); i++) {
     tone(buzzer, Tone[melody[i] - 1], beats[i] * 150);
   }
