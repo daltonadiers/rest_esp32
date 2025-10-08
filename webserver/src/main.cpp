@@ -74,7 +74,7 @@ void setup()
 
   a2dp.set_data_callback_in_frames(get_data);
   a2dp.set_volume(90);
-  a2dp.start("QCY-T13 ANC");
+  a2dp.start("Tronsmart Trip");
 
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
   Serial.println("Comandos: '1' toca, 'pause' pausa, 'start' continua.");
@@ -124,7 +124,7 @@ void loop()
       String idStr = cmd.substring(6);
       int id = idStr.toInt();
 
-      if (id < NUM_MUSICAS && id > 1 && id != tocando) {
+      if (id <= NUM_MUSICAS && id >= 1 && id != tocando) {
         tocando = id;
 
         if(f)

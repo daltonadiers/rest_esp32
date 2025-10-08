@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player de Música — Single Page</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; }
+    body { background: radial-gradient(1200px 800px at 70% 10%, #1e293b 0%, #0b1224 50%, #060913 100%), var(--bg); color: var(--fg); }
+    .app { min-height: 100svh; display: grid; place-items: center; padding: 1.25rem; }
+    .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    .cover { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 1rem; }
+    .queue { max-height: 65vh; overflow: auto; }
+    .list-group-item { background: transparent; color: var(--fg); border-color: rgba(255,255,255,0.08); }
+    .list-group-item.active { background: #1f2937; border-color: #334155; }
+    .btn-ctrl { width: 3rem; height: 3rem; border-radius: 999px; display: grid; place-items: center; }
+    input[type="range"]::-webkit-slider-thumb { cursor: pointer; }
+    .small-muted { color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="app container">
+    <div class="row w-100 g-4">
+      <!-- Fila de músicas -->
+      <div class="col-12 col-lg-4">
+        <div class="glass rounded-4 p-3">
+          <h5 class="mb-3"><i class="bi bi-music-note-list me-2"></i>Fila</h5>
+          <ul id="queue" class="list-group queue rounded-3"></ul>
+        </div>
+      </div>
+
+      <!-- Player central -->
+      <div class="col-12 col-lg-8">
+        <div class="glass rounded-4 p-4">
+          <div class="row g-4 align-items-center">
+            <div class="col-12 col-md-5">
+              <img id="cover" class="cover" src="" alt="Capa da música" />
+            </div>
+            <div class="col-12 col-md-7">
+              <div class="d-flex flex-column h-100">
+                <div class="mb-3">
+                  <div class="small-muted">Tocando agora</div>
+                  <h3 id="title" class="mb-1">—</h3>
+                  <div id="artist" class="small-muted">—</div>
+                </div>
+
+                <!-- Barra de progresso -->
+                <div class="mb-2">
+                  <input id="progress" type="range" min="0" max="100" value="0" class="form-range" />
+                  <div class="d-flex justify-content-between small-muted">
+                    <span id="currentTime">0:00</span>
+                    <span id="duration">0:00</span>
+                  </div>
+                </div>
+
+                <!-- Controles -->
+                <div class="d-flex align-items-center gap-3 my-2">
+                  <button id="prev" class="btn btn-outline-light btn-ctrl" title="Anterior"><i class="bi bi-skip-start-fill"></i></button>
+                  <button id="play" class="btn btn-light btn-ctrl" title="Play/Pause"><i class="bi bi-play-fill fs-4"></i></button>
+                  <button id="next" class="btn btn-outline-light btn-ctrl" title="Próxima"><i class="bi bi-skip-end-fill"></i></button>
+                  <div class="ms-auto d-flex align-items-center gap-2">
+                    <i class="bi bi-volume-up"></i>
+                    <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" />
+                  </div>
+                </div>
+
+                <!-- Extras -->
+                <div class="d-flex gap-3 small-muted mt-2">
+                  <span><i class="bi bi-collection-play me-1"></i><span id="queueCount">0</span> faixas</span>
+                  <span><i class="bi bi-repeat me-1"></i><span id="repeatMode">sem repetição</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Áudio -->
+  <audio id="audio"></audio>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Lista de músicas (imagens por links externos, áudios demonstrativos do SoundHelix)
+    const tracks = [
+      {
+        title: "Dawn Flight",
+        artist: "SoundHelix",
+        cover: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=800&auto=format&fit=crop",
+        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+      },
+      {
+        title: "City Nights",
+        artist: "SoundHelix",
+        cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=800&auto=format&fit=crop",
+        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+      },
+      {
+        title: "Ocean Drive",
+        artist: "SoundHelix",
+        cover: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=800&auto=format&fit=crop",
+        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+      }
+    ];
+
+    // Elementos
+    const audio = document.getElementById('audio');
+    const cover = document.getElementById('cover');
+    const title = document.getElementById('title');
+    const artist = document.getElementById('artist');
+    const queueEl = document.getElementById('queue');
+    const playBtn = document.getElementById('play');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const progress = document.getElementById('progress');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const volumeEl = document.getElementById('volume');
+    const queueCount = document.getElementById('queueCount');
+    const repeatModeEl = document.getElementById('repeatMode');
+
+    let index = 0;
+    let isPlaying = false;
+    let repeat = 0; // 0 = sem repetição, 1 = repetir faixa, 2 = repetir fila
+
+    function fmtTime(sec) {
+      if (!isFinite(sec)) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function renderQueue() {
+      queueEl.innerHTML = '';
+      tracks.forEach((t, i) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex align-items-center gap-3';
+        li.role = 'button';
+        li.innerHTML = `
+          <img src="${t.cover}" alt="capa" class="rounded" style="width:46px;height:46px;object-fit:cover" />
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${t.title}</div>
+            <div class="small-muted">${t.artist}</div>
+          </div>
+          <i class="bi ${i === index ? 'bi-soundwave' : 'bi-music-note-beamed'}"></i>
+        `;
+        if (i === index) li.classList.add('active');
+        li.addEventListener('click', () => {
+          loadTrack(i);
+          play();
+        });
+        queueEl.appendChild(li);
+      });
+      queueCount.textContent = tracks.length;
+    }
+
+    function loadTrack(i) {
+      index = (i + tracks.length) % tracks.length;
+      const t = tracks[index];
+      audio.src = t.src || '';
+      title.textContent = t.title;
+      artist.textContent = t.artist;
+      cover.src = t.cover;
+      renderQueue();
+    }
+
+    function play() {
+      if (!audio.src) return;
+      audio.play();
+    }
+
+    function pause() { audio.pause(); }
+
+    // Eventos de áudio
+    audio.addEventListener('play', () => {
+      isPlaying = true;
+      playBtn.innerHTML = '<i class="bi bi-pause-fill fs-4"></i>';
+      playBtn.classList.replace('btn-light', 'btn-warning');
+    });
+
+    audio.addEventListener('pause', () => {
+      isPlaying = false;
+      playBtn.innerHTML = '<i class="bi bi-play-fill fs-4"></i>';
+      playBtn.classList.replace('btn-warning', 'btn-light');
+    });
+
+    audio.addEventListener('timeupdate', () => {
+      const { currentTime, duration } = audio;
+      currentTimeEl.textContent = fmtTime(currentTime);
+      durationEl.textContent = fmtTime(duration);
+      const pct = duration ? (currentTime / duration) * 100 : 0;
+      progress.value = pct;
+    });
+
+    audio.addEventListener('ended', () => {
+      if (repeat === 1) { // repetir faixa
+        play();
+        return;
+      }
+      next();
+      if (repeat === 2 && index === 0) { // repetição da fila já é natural pelo loop
+        play();
+      }
+    });
+
+    // Controles UI
+    playBtn.addEventListener('click', () => isPlaying ? pause() : play());
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+
+    function prev() { loadTrack(index - 1); play(); }
+    function next() { loadTrack(index + 1); play(); }
+
+    progress.addEventListener('input', () => {
+      const d = audio.duration || 0;
+      audio.currentTime = (progress.value / 100) * d;
+    });
+
+    volumeEl.addEventListener('input', () => {
+      audio.volume = volumeEl.value;
+    });
+
+    // Atalho: R muda modo de repetição
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === ' ') { e.preventDefault(); isPlaying ? pause() : play(); }
+      if (e.key.toLowerCase() === 'r') {
+        repeat = (repeat + 1) % 3;
+        repeatModeEl.textContent = ['sem repetição', 'repetir faixa', 'repetir fila'][repeat];
+      }
+      if (e.key === 'ArrowRight') next();
+      if (e.key === 'ArrowLeft') prev();
+    });
+
+    // Inicialização
+    loadTrack(0);
+    renderQueue();
+    audio.volume = volumeEl.value;
+  </script>
+</body>
+</html>
