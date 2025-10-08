@@ -11,15 +11,16 @@
 BluetoothA2DPSource a2dp;
 File f;
 const int CS = 5;
-const int NUM_MUSICAS = 3;
+const int NUM_MUSICAS = 40;
 int tocando = 1;
 
-volatile bool paused = false;
+volatile bool paused = true;
 
 bool open_wav_data()
 {
   String wav = "/musics/" + String(tocando) + ".wav";
-
+  Serial.println(wav);
+  
   f = SD.open(wav, FILE_READ);
   if (!f) {
     Serial.println("False");
@@ -122,8 +123,9 @@ void loop()
     }
     else if (cmd.startsWith("troca/")) {
       String idStr = cmd.substring(6);
+      
       int id = idStr.toInt();
-
+      Serial.println("Id " + String(id));
       if (id <= NUM_MUSICAS && id >= 1 && id != tocando) {
         tocando = id;
 
@@ -134,6 +136,11 @@ void loop()
         open_wav_data();
       } 
     }
+    else if (cmd == "getMusic") {
+      char msg[20];
+      snprintf(msg, sizeof(msg), "%d/%d", tocando, paused);
+      Serial2.println(msg);
+    }
   }
 
   // fim do arquivo
@@ -143,17 +150,15 @@ void loop()
     Serial.println("Fim da musica.");
   }
 
-    // volume a cada ~100 ms
   unsigned long now = millis();
   if (now - lastVolMs >= 100) {
     lastVolMs = now;
-    int raw = analogRead(POT_PIN);            // 0..4095
+    int raw = analogRead(POT_PIN);
     filt = (lastVol < 0) ? raw : (ALPHA*raw + (1-ALPHA)*filt);
     int vol = adc_to_volume((int)filt);
-    if (lastVol < 0 || abs(vol - lastVol) >= 2) {  // histerese para evitar jitter
+    if (lastVol < 0 || abs(vol - lastVol) >= 2) {
       a2dp.set_volume(vol);
       lastVol = vol;
-      // opcional: Serial.printf("Vol: %d\n", vol);
     }
   }
 }

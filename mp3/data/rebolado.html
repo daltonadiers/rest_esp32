@@ -76,7 +76,6 @@
     </div>
   </div>
 
-  <!-- Áudio (não usado, apenas placeholder se precisar no futuro) -->
   <audio id="audio"></audio>
 
   <!-- Bootstrap JS -->
@@ -146,7 +145,6 @@
         headers: { 'Content-Type': 'application/json' },
         ...opts
       });
-      // Tenta JSON, senão devolve vazio
       try { return await res.json(); } catch { return {}; }
     }
 
@@ -307,7 +305,7 @@
         const data = await apiFetch(API.atual, { method: 'GET' });
         const i = byId(data?.id);
         if (i >= 0) setTrack(i); else setTrack(0);
-        isPaused = Boolean(data?.paused);
+        isPaused = Number(data?.paused);
         setPlayButton(isPaused);
         if (!isPaused) startTimer();
       } catch (e) {
