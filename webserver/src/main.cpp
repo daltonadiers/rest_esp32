@@ -56,7 +56,7 @@ const float ALPHA = 0.2f;
 unsigned long lastVolMs = 0;
 
 int adc_to_volume(int adc) {
-  float x = adc / 4095.0f;
+  float x = (4095 - adc) / 4095.0f;  // Inverte o valor do ADC
   float y = powf(x, 0.6f);
   int v = (int)roundf(VOL_MIN + y * (VOL_MAX - VOL_MIN));
   if (v < VOL_MIN) v = VOL_MIN;

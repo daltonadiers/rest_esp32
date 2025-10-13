@@ -13,7 +13,7 @@ StaticJsonDocument<1024> jsonDocument;
 
 char buffer[1024];
 const int quantLeds = 6;
-int ledPins[quantLeds] = {2, 4, 18, 19, 21, 23};
+int ledPins[quantLeds] = {23, 21, 19, 18, 4, 2};
 bool paused = true;
 
 void setupApi();
@@ -80,7 +80,7 @@ void loop()
 
     int valPoten = analogRead(POT_PIN);
     valPoten = constrain(valPoten, 0, 4095);
-    int ledNivel = map(valPoten, 0, 4095, 0, quantLeds);
+    int ledNivel = map(valPoten, 0, 4095, quantLeds, 0);
 
     for (int i = 0; i < quantLeds; i++)
     {
