@@ -1,196 +1,164 @@
-#include <Arduino.h>
-#include <SPIFFS.h>
-#include <WebServer.h>
-#include <ArduinoJson.h>
-#include <WiFiManager.h>
+#include <SPI.h>
+#include <SD.h>
+#include "BluetoothA2DPSource.h"
 
 #define RXD2 16
 #define TXD2 17
 #define POT_PIN 34
+#define VOL_MIN 0
+#define VOL_MAX 127
 
-WebServer server(80);
-StaticJsonDocument<1024> jsonDocument;
+BluetoothA2DPSource a2dp;
+File f;
+const int CS = 5;
+const int NUM_MUSICAS = 41;
+int tocando = 1;
 
-char buffer[1024];
-const int quantLeds = 6;
-int ledPins[quantLeds] = {23, 21, 19, 18, 4, 2};
-bool paused = true;
+volatile bool paused = true;
 
-void setupApi();
-void playRebolado();
-void playPause();
-void playStart();
-void playPrevious();
-void playNext();
-void chooseMusic();
-void getMusic();
-
-void createJson(char *name, float value, char *unit)
+bool open_wav_data()
 {
-    jsonDocument.clear();
-    jsonDocument["name"] = name;
-    jsonDocument["value"] = value;
-    jsonDocument["unit"] = unit;
-    serializeJson(jsonDocument, buffer);
+  String wav = "/musics/" + String(tocando) + ".wav";
+  Serial.println(wav);
+  
+  f = SD.open(wav, FILE_READ);
+  if (!f) {
+    Serial.println("False");
+    return false;
+  }
+  f.seek(44); // cabeçalho WAV padrão
+  return true;
 }
 
-void addJsonObject(char *name, int value)
+// callback em "frames" (L,R 16-bit => 4 bytes por frame)
+int32_t get_data(Frame *frame, int32_t frame_count)
 {
-    JsonObject obj = jsonDocument.createNestedObject();
-    obj[name] = value;
+  if (!f)
+    return 0;
+
+  if (paused)
+  {
+    // envia silêncio mantendo o stream ativo
+    memset(frame, 0, frame_count * sizeof(Frame));
+    return frame_count;
+  }
+
+  int32_t want = frame_count * 4;
+  int readb = f.read((uint8_t *)frame, want);
+  if (readb <= 0)
+    return 0;
+  return readb / 4;
+}
+
+int lastVol = -1;
+float filt = 0;
+const float ALPHA = 0.2f;
+unsigned long lastVolMs = 0;
+
+int adc_to_volume(int adc) {
+  float x = (4095 - adc) / 4095.0f;  // Inverte o valor do ADC
+  float y = powf(x, 0.6f);
+  int v = (int)roundf(VOL_MIN + y * (VOL_MAX - VOL_MIN));
+  if (v < VOL_MIN) v = VOL_MIN;
+  if (v > VOL_MAX) v = VOL_MAX;
+  return v;
 }
 
 void setup()
 {
-    Serial.begin(9600);
-    delay(1500);
+  Serial.begin(115200);
+  SD.begin(CS);
 
-    for (int i = 0; i < quantLeds; i++)
-    {
-        pinMode(ledPins[i], OUTPUT);
-        digitalWrite(ledPins[i], LOW);
-    }
+  analogReadResolution(12);
+  analogSetAttenuation(ADC_11db);
+  pinMode(POT_PIN, INPUT);
 
-    analogSetPinAttenuation(POT_PIN, ADC_11db);
+  a2dp.set_data_callback_in_frames(get_data);
+  a2dp.set_volume(90);
+  a2dp.start("Tronsmart Trip");
 
-    WiFi.mode(WIFI_STA);
-    WiFiManager wm;
-
-    bool res;
-    res = wm.autoConnect("DaltonEsp32", "12345671");
-
-    if (!res)
-    {
-        Serial.println("Failed to connect");
-        ESP.restart();
-    }
-    else
-    {
-        Serial.println("Connected...yeey :)");
-    }
-
-    setupApi();
-
-    Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
+  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
+  Serial.println("Comandos: '1' toca, 'pause' pausa, 'start' continua.");
 }
 
 void loop()
 {
-    server.handleClient();
-
-    int valPoten = analogRead(POT_PIN);
-    valPoten = constrain(valPoten, 0, 4095);
-    int ledNivel = map(valPoten, 0, 4095, quantLeds, 0);
-
-    for (int i = 0; i < quantLeds; i++)
+  if (Serial2.available())
+  {
+    String cmd = Serial2.readStringUntil('\n');
+    cmd.trim();
+    if (cmd == "start")
     {
-        digitalWrite(ledPins[i], (i < ledNivel) ? HIGH : LOW);
+      paused = false;
+      if (!f)
+        open_wav_data();
+      Serial.println("Continua a tocar.");
     }
-}
-
-void setupApi()
-{
-    server.on("/rebolado", playRebolado);
-    server.on("/pause", playPause);
-    server.on("/start", playStart);
-    server.on("/previous", playPrevious);
-    server.on("/next", playNext);
-    server.on("/setMusic", HTTP_POST, chooseMusic);
-    server.on("/getMusic", getMusic);
-
-    // start server
-    server.begin();
-}
-
-void playPause()
-{
-    Serial2.print("pause");
-    server.send(200);
-}
-
-void playStart()
-{
-    Serial2.print("start");
-    server.send(200);
-}
-
-void playNext()
-{
-    Serial2.print("next");
-    server.send(200);
-}
-
-void playPrevious()
-{
-    Serial2.print("previous");
-    server.send(200);
-}
-
-void chooseMusic()
-{
-    if (server.hasArg("plain") == false)
+    else if (cmd == "pause")
     {
-        server.send(400, "application/json", "{msg: Error}");
+      paused = true;
+      Serial.println("Pausado (silêncio enviado no A2DP).");
     }
-    String body = server.arg("plain");
-    deserializeJson(jsonDocument, body);
-
-    int idMusic = jsonDocument["id"];
-    Serial2.println("troca/" + String(idMusic));
-
-    server.send(200, "application/json", "{}");
-}
-
-void getMusic()
-{
-    Serial2.println("getMusic");  // Envia comando para outra ESP
-
-    unsigned long startTime = millis();
-    const unsigned long timeout = 2000;
-
-    while (millis() - startTime < timeout)
+    else if (cmd == "previous")
     {
-        if (Serial2.available())
-        {
-            String msg = Serial2.readStringUntil('\n');
-            int sepIndex = msg.indexOf('/');
+      paused = false;
+      tocando--;
+      if (tocando < 1)
+        tocando = NUM_MUSICAS;
 
-            if (sepIndex >= 0)
-            {
-                int tocando = msg.substring(0, sepIndex).toInt();
-                bool paused = msg.substring(sepIndex + 1).toInt();
-
-                Serial.print("Tocando: ");
-                Serial.println(tocando);
-                Serial.print("Paused: ");
-                Serial.println(paused);
-
-                jsonDocument.clear();
-                jsonDocument["id"] = tocando;
-                jsonDocument["paused"] = paused;
-
-                serializeJson(jsonDocument, buffer);
-                server.send(200, "application/json", buffer);
-                return;
-            }
-        }
+      if (f)
+        f.close();
+      open_wav_data();
     }
-    Serial.println("Erro: resposta não recebida dentro do tempo limite");
-    server.send(500, "text/plain", "Erro: sem resposta da outra ESP");
-}
+    else if (cmd == "next")
+    {
+      paused = false;
+      tocando++;
+      if (tocando > NUM_MUSICAS)
+        tocando = 1;
 
-void playRebolado() {
-    if(!SPIFFS.begin(true)){
-        Serial.println("An Error has occurred while mounting SPIFFS");
-        return;
+      if (f)
+        f.close();
+      open_wav_data();
     }
+    else if (cmd.startsWith("troca/")) {
+      String idStr = cmd.substring(6);
+      
+      int id = idStr.toInt();
+      Serial.println("Id " + String(id));
+      if (id <= NUM_MUSICAS && id >= 1 && id != tocando) {
+        tocando = id;
 
-  File file = SPIFFS.open("/rebolado.html");
-  if(!file){
-    server.send(404, "text/plain", "Arquivo não encontrado");
-    return;
+        if(f)
+          f.close();
+
+        paused = false;
+        open_wav_data();
+      } 
+    }
+    else if (cmd == "getMusic") {
+      char msg[20];
+      snprintf(msg, sizeof(msg), "%d/%d", tocando, paused);
+      Serial2.println(msg);
+    }
   }
 
-  server.streamFile(file, "text/html");
-  file.close();
+  // fim do arquivo
+  if (f && !f.available() && !paused)
+  {
+    f.close();
+    Serial.println("Fim da musica.");
+  }
+
+  unsigned long now = millis();
+  if (now - lastVolMs >= 100) {
+    lastVolMs = now;
+    int raw = analogRead(POT_PIN);
+    filt = (lastVol < 0) ? raw : (ALPHA*raw + (1-ALPHA)*filt);
+    int vol = adc_to_volume((int)filt);
+    if (lastVol < 0 || abs(vol - lastVol) >= 2) {
+      a2dp.set_volume(vol);
+      lastVol = vol;
+    }
+  }
 }

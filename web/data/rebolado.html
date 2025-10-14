@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player de Música — Fabamigos</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; }
+    body { background: radial-gradient(1200px 800px at 70% 10%, #1e293b 0%, #0b1224 50%, #060913 100%), var(--bg); color: var(--fg); }
+    .app { min-height: 100svh; display: grid; place-items: center; padding: 1.25rem; }
+    .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
+    .cover { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 1rem; }
+    .queue { max-height: 65vh; overflow: auto; }
+    .list-group-item { background: transparent; color: var(--fg); border-color: rgba(255,255,255,0.08); }
+    .list-group-item.active { background: #1f2937; border-color: #334155; }
+    .btn-ctrl { width: 3rem; height: 3rem; border-radius: 999px; display: grid; place-items: center; }
+    input[type="range"]::-webkit-slider-thumb { cursor: pointer; }
+    .small-muted { color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="app container">
+    <div class="row w-100 g-4">
+      <!-- Fila de músicas -->
+      <div class="col-12 col-lg-4">
+        <div class="glass rounded-4 p-3">
+          <h5 class="mb-3"><i class="bi bi-music-note-list me-2"></i>Fila</h5>
+          <ul id="queue" class="list-group queue rounded-3"></ul>
+        </div>
+      </div>
+
+      <!-- Player central -->
+      <div class="col-12 col-lg-8">
+        <div class="glass rounded-4 p-4">
+          <div class="row g-4 align-items-center">
+            <div class="col-12 col-md-5">
+              <img id="cover" class="cover" src="" alt="Capa da música" />
+            </div>
+            <div class="col-12 col-md-7">
+              <div class="d-flex flex-column h-100">
+                <div class="mb-3">
+                  <div class="small-muted">Tocando agora</div>
+                  <h3 id="title" class="mb-1">—</h3>
+                  <div id="artist" class="small-muted">—</div>
+                </div>
+
+                <!-- Barra de progresso -->
+                <div class="mb-2">
+                  <input disabled id="progress" type="range" min="0" max="100" value="0" class="form-range"/>
+                  <div class="d-flex justify-content-between small-muted">
+                    <span id="currentTime">0:00</span>
+                    <span id="duration">0:00</span>
+                  </div>
+                </div>
+
+                <!-- Controles -->
+                <div class="d-flex align-items-center gap-3 my-2">
+                  <button id="prev" class="btn btn-outline-light btn-ctrl" title="Anterior"><i class="bi bi-skip-start-fill"></i></button>
+                  <button id="play" class="btn btn-light btn-ctrl" title="Play/Pause"><i class="bi bi-play-fill fs-4"></i></button>
+                  <button id="next" class="btn btn-outline-light btn-ctrl" title="Próxima"><i class="bi bi-skip-end-fill"></i></button>
+                </div>
+
+                <!-- Extras -->
+                <div class="d-flex gap-3 small-muted mt-2">
+                  <span><i class="bi bi-collection-play me-1"></i><span id="queueCount">0</span> faixas</span>
+                  <span><i class="bi bi-repeat me-1"></i><span id="repeatMode">sem repetição</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio"></audio>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // ====== Config da API ======
+    const API = {
+      atual: 'http://172.17.28.206/getMusic',
+      start: 'http://172.17.28.206/start',
+      pause: 'http://172.17.28.206/pause',
+      next: 'http://172.17.28.206/next',
+      previous: 'http://172.17.28.206/previous',
+      select: 'http://172.17.28.206/setMusic'
+    };
+
+    // ====== Dataset local ======
+    const tracks = [
+      { id: 1,  title: "Three Little Birds", artist: "Bob Marley & The Wailers", cover: "https://imagensserver.holdtechnologies.com/1.jpg",  durationSeconds: 192 },
+      { id: 2,  title: "Beat It", artist: "Michael Jackson", cover: "https://imagensserver.holdtechnologies.com/2.jpg",  durationSeconds: 258 },
+      { id: 3,  title: "Espantando Bagual", artist: "Mano Lima", cover: "https://imagensserver.holdtechnologies.com/3.jpg",  durationSeconds: 162 },
+      { id: 4,  title: "Die With A Smile", artist: "Bruno Mars e Lady Gaga", cover: "https://imagensserver.holdtechnologies.com/4.jpg",  durationSeconds: 252 },
+      { id: 5,  title: "Write This Down", artist: "Soul Chef",  cover: "https://imagensserver.holdtechnologies.com/5.jpg",  durationSeconds: 798 },
+      { id: 6,  title: "Don't Stay", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/6.jpg",  durationSeconds: 323 },
+      { id: 7,  title: "Don't Stop The Party", artist: "Black Eyed Peas", cover: "https://imagensserver.holdtechnologies.com/7.jpg",  durationSeconds: 213 },
+      { id: 8,  title: "Stayin Alive", artist: "Bee Gees",  cover: "https://imagensserver.holdtechnologies.com/8.jpg",  durationSeconds: 249 },
+      { id: 9,  title: "Dormi na Praça", artist: "Bruno e Marrone", cover: "https://imagensserver.holdtechnologies.com/9.jpg",  durationSeconds: 158 },
+      { id: 10, title: "Say It Right", artist: "Nelly Furtado", cover: "https://imagensserver.holdtechnologies.com/10.jpg", durationSeconds: 223 },
+      { id: 11, title: "Not Like US", artist: "Kendrick Lamar", cover: "https://imagensserver.holdtechnologies.com/11.jpg", durationSeconds: 274 },
+      { id: 12, title: "Riders on the Storm", artist: "Snoop Dogg and The Doors", cover: "https://imagensserver.holdtechnologies.com/12.jpg", durationSeconds: 372 },
+      { id: 13, title: "APT", artist: "Bruno Mars e Rosé", cover: "https://imagensserver.holdtechnologies.com/13.jpg", durationSeconds: 173 },
+      { id: 14, title: "Hot Together", artist: "The Pointer Sisters", cover: "https://imagensserver.holdtechnologies.com/14.jpg", durationSeconds: 251 },
+      { id: 15, title: "Borboletas", artist: "Victor e Léo", cover: "https://imagensserver.holdtechnologies.com/15.jpg", durationSeconds: 201 },
+      { id: 16, title: "Back In Black", artist: "AC/DC", cover: "https://imagensserver.holdtechnologies.com/16.jpg", durationSeconds: 253 },
+      { id: 17, title: "Gritos de Liberdade", artist: "Grupo Rodeio", cover: "https://imagensserver.holdtechnologies.com/17.jpg", durationSeconds: 204 },
+      { id: 18, title: "Ai se eu te pego (If I Catch You)", artist: "Michel Teló", cover: "https://imagensserver.holdtechnologies.com/18.jpg", durationSeconds: 175 },
+      { id: 19, title: "The Trooper", artist: "Iron Maiden", cover: "https://imagensserver.holdtechnologies.com/19.jpg", durationSeconds: 256 },
+      { id: 20, title: "The Lazy Song", artist: "Bruno Mars", cover: "https://imagensserver.holdtechnologies.com/20.jpg", durationSeconds: 199 },
+      { id: 21, title: "Burn It Down", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/21.jpg", durationSeconds: 233 },
+      { id: 22, title: "É Disso Que O Velho Gosta", artist: "Os Serranos", cover: "https://imagensserver.holdtechnologies.com/22.jpg", durationSeconds: 260 },
+      { id: 23, title: "Judas", artist: "Lady Gaga", cover: "https://imagensserver.holdtechnologies.com/23.jpg", durationSeconds: 249 },
+      { id: 24, title: "Beautiful Girls", artist: "Sean Kingston", cover: "https://imagensserver.holdtechnologies.com/24.jpg", durationSeconds: 241 },
+      { id: 25, title: "The Kids Aren't Alright", artist: "The Offspring", cover: "https://imagensserver.holdtechnologies.com/25.jpg", durationSeconds: 180 },
+      { id: 26, title: "Highest In The Room", artist: "Travis Scott", cover: "https://imagensserver.holdtechnologies.com/26.jpg", durationSeconds: 176 },
+      { id: 27, title: "California Dreamin", artist: "The Mamas & the Papas", cover: "https://imagensserver.holdtechnologies.com/27.jpg", durationSeconds: 162 },
+      { id: 28, title: "Desabafo", artist: "Marcelo D2", cover: "https://imagensserver.holdtechnologies.com/28.jpg", durationSeconds: 175 },
+      { id: 29, title: "Gangsta's Paradise", artist: "Coolio", cover: "https://imagensserver.holdtechnologies.com/29.jpg", durationSeconds: 241 },
+      { id: 30, title: "Boulevard of Broken Dreams", artist: "Green Day", cover: "https://imagensserver.holdtechnologies.com/30.jpg", durationSeconds: 260 },
+      { id: 31, title: "Without Me", artist: "Eminem", cover: "https://imagensserver.holdtechnologies.com/31.jpg", durationSeconds: 291 },
+      { id: 32, title: "P do Pecado", artist: "Grupo Menos é Mais e Simone Mendes", cover: "https://imagensserver.holdtechnologies.com/32.jpg", durationSeconds: 191 },
+      { id: 33, title: "Give Me Everything", artist: "Afrojack, Ne-Yo e Pitbull", cover: "https://imagensserver.holdtechnologies.com/33.jpg", durationSeconds: 266 },
+      { id: 34, title: "Tem que ser você", artist: "Victor e Léo", cover: "https://imagensserver.holdtechnologies.com/34.jpg", durationSeconds: 186 },
+      { id: 35, title: "Lying From You", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/35.jpg", durationSeconds: 269 },
+      { id: 36, title: "My Demons", artist: "Starset", cover: "https://imagensserver.holdtechnologies.com/36.jpg", durationSeconds: 194 },
+      { id: 37, title: "The Fresh Prince Of Bel Air", artist: "DJ Jazzy Jeff & the Fresh Prince", cover: "https://imagensserver.holdtechnologies.com/37.jpg", durationSeconds: 138 },
+      { id: 38, title: "I Hate Everything About You", artist: "Three Days Grace", cover: "https://imagensserver.holdtechnologies.com/38.jpg", durationSeconds: 219 },
+      { id: 39, title: "From The Inside", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/39.jpg", durationSeconds: 569 },
+      { id: 40, title: "Mujeriego", artist: "Ryan Castro", cover: "https://imagensserver.holdtechnologies.com/40.jpg", durationSeconds: 142 },
+      { id: 40, title: "The Fate of Ophelia", artist: "Taylor Swift", cover: "https://imagensserver.holdtechnologies.com/41.jpg", durationSeconds: 231 }
+    ];
+
+    // ====== Helpers ======
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    async function apiFetch(url, opts = {}, delay = 500) {
+      await sleep(delay);
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+      });
+      try { return await res.json(); } catch { return {}; }
+    }
+
+    const byId = (id) => tracks.findIndex(t => t.id === id);
+    const nextIndexOf = (i) => (i + 1) % tracks.length;
+    const prevIndexOf = (i) => (i - 1 + tracks.length) % tracks.length;
+
+    // ====== Elementos ======
+    const cover = document.getElementById('cover');
+    const titleEl = document.getElementById('title');
+    const artistEl = document.getElementById('artist');
+    const queueEl = document.getElementById('queue');
+    const playBtn = document.getElementById('play');
+    const prevBtn = document.getElementById('prev');
+    const nextBtn = document.getElementById('next');
+    const progress = document.getElementById('progress');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationEl = document.getElementById('duration');
+    const queueCount = document.getElementById('queueCount');
+
+    // ====== Estado ======
+    let index = 0; // índice da faixa atual
+    let isPaused = true;
+    let currentSec = 0; // tempo atual em segundos
+    let timer = null; // setInterval handler
+
+    // ====== UI ======
+    function fmtTime(sec) {
+      if (!isFinite(sec)) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function renderQueue() {
+      queueEl.innerHTML = '';
+      tracks.forEach((t, i) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item d-flex align-items-center gap-3';
+        li.role = 'button';
+        li.innerHTML = `
+          <img src="${t.cover}" alt="capa" class="rounded" style="width:46px;height:46px;object-fit:cover" />
+          <div class="flex-grow-1">
+            <div class="fw-semibold">${t.title}</div>
+            <div class="small-muted">${t.artist}</div>
+          </div>
+          <i class="bi ${i === index ? 'bi-soundwave' : 'bi-music-note-beamed'}"></i>
+        `;
+        if (i === index) li.classList.add('active');
+        li.addEventListener('click', async () => {
+          // POST /select { id }
+          const id = tracks[i].id;
+          await apiFetch(API.select, { method: 'POST', body: JSON.stringify({ id }) });
+          setTrack(i);
+          start();
+        });
+        queueEl.appendChild(li);
+      });
+      queueCount.textContent = tracks.length;
+    }
+
+    function setTrack(i, keepTime = false) {
+      index = (i + tracks.length) % tracks.length;
+      const t = tracks[index];
+      cover.src = t.cover;
+      titleEl.textContent = t.title;
+      artistEl.textContent = t.artist;
+      durationEl.textContent = fmtTime(t.durationSeconds);
+      if (!keepTime) currentSec = 0;
+      updateProgress();
+      renderQueue();
+    }
+
+    function updateProgress() {
+      const t = tracks[index];
+      const pct = t.durationSeconds ? (currentSec / t.durationSeconds) * 100 : 0;
+      progress.value = Math.max(0, Math.min(100, pct));
+      currentTimeEl.textContent = fmtTime(currentSec);
+      durationEl.textContent = fmtTime(t.durationSeconds);
+    }
+
+    function setPlayButton(paused) {
+      if (!paused) {
+        playBtn.innerHTML = '<i class="bi bi-pause-fill fs-4"></i>';
+        playBtn.classList.add('btn-warning');
+        playBtn.classList.remove('btn-light');
+      } else {
+        playBtn.innerHTML = '<i class="bi bi-play-fill fs-4"></i>';
+        playBtn.classList.add('btn-light');
+        playBtn.classList.remove('btn-warning');
+      }
+    }
+
+    function startTimer() {
+      stopTimer();
+      timer = setInterval(() => {
+        if (isPaused) return;
+        currentSec += 1;
+        const t = tracks[index];
+        if (currentSec >= t.durationSeconds) {
+          currentSec = t.durationSeconds;
+          updateProgress();
+          onEnded();
+        } else {
+          updateProgress();
+        }
+      }, 1000);
+    }
+
+    function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+
+    // ====== Controles ======
+    async function start() {
+      await apiFetch(API.start, { method: 'GET' });
+      isPaused = false;
+      setPlayButton(false);
+      startTimer();
+    }
+
+    async function pause() {
+      await apiFetch(API.pause, { method: 'GET' });
+      isPaused = true;
+      setPlayButton(true);
+    }
+
+    async function next() {
+      await apiFetch(API.next, { method: 'GET' });
+      setTrack(nextIndexOf(index));
+      isPaused = false;
+      setPlayButton(false);
+      startTimer();
+    }
+
+    async function previous() {
+      await apiFetch(API.previous, { method: 'GET' });
+      setTrack(prevIndexOf(index));
+      isPaused = false;
+      setPlayButton(false);
+      startTimer();
+    }
+
+    async function onEnded() {
+      // mesmo comportamento do botão Próxima
+      await next();
+    }
+
+    // Eventos de botões
+    playBtn.addEventListener('click', () => {
+      if (isPaused) start(); else pause();
+    });
+    nextBtn.addEventListener('click', next);
+    prevBtn.addEventListener('click', previous);
+
+    // ====== Inicialização ======
+    async function init() {
+      // GET /atual -> { id, paused }
+      try {
+        const data = await apiFetch(API.atual, { method: 'GET' });
+        const i = byId(data?.id);
+        if (i >= 0) setTrack(i); else setTrack(0);
+        isPaused = Number(data?.paused);
+        setPlayButton(isPaused);
+        if (!isPaused) startTimer();
+      } catch (e) {
+        // fallback local
+        setTrack(0);
+        isPaused = true;
+        setPlayButton(true);
+      }
+      renderQueue();
+    }
+
+    init();
+  </script>
+</body>
+</html>
