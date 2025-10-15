@@ -15,6 +15,7 @@ char buffer[1024];
 const int quantLeds = 6;
 int ledPins[quantLeds] = {23, 21, 19, 18, 4, 2};
 bool paused = true;
+volatile bool bloqueado = false;
 
 void setupApi();
 void playRebolado();
@@ -104,25 +105,37 @@ void setupApi()
 
 void playPause()
 {
+    bloqueado = true;
     Serial2.print("pause");
+    delay(1000);
+    bloqueado = false;
     server.send(200);
 }
 
 void playStart()
 {
+    bloqueado = true;
     Serial2.print("start");
+    delay(1000);
+    bloqueado = false;
     server.send(200);
 }
 
 void playNext()
 {
+    bloqueado = true;
     Serial2.print("next");
+    delay(1000);
+    bloqueado = false;
     server.send(200);
 }
 
 void playPrevious()
 {
+    bloqueado = true;
     Serial2.print("previous");
+    delay(1000);
+    bloqueado = false;
     server.send(200);
 }
 
@@ -142,7 +155,11 @@ void chooseMusic()
 }
 
 void getMusic()
-{
+{   
+    if(bloqueado){
+        server.send(429, "text/plain", "Ocupado: mudando de música");
+        return;
+    }
     Serial2.println("getMusic");  // Envia comando para outra ESP
 
     unsigned long startTime = millis();
@@ -157,17 +174,22 @@ void getMusic()
 
             if (sepIndex >= 0)
             {
+                int sepIndex2 = msg.indexOf('/', sepIndex + 1);
                 int tocando = msg.substring(0, sepIndex).toInt();
                 bool paused = msg.substring(sepIndex + 1).toInt();
+                unsigned long pos = msg.substring(sepIndex2 + 1).toInt();
 
                 Serial.print("Tocando: ");
                 Serial.println(tocando);
                 Serial.print("Paused: ");
                 Serial.println(paused);
+                Serial.println("Tempo (s): ");
+                Serial.println(pos);
 
                 jsonDocument.clear();
                 jsonDocument["id"] = tocando;
                 jsonDocument["paused"] = paused;
+                jsonDocument["position"] = pos;
 
                 serializeJson(jsonDocument, buffer);
                 server.send(200, "application/json", buffer);

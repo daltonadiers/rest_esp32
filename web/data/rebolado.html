@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="pt-br">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,19 +9,89 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    :root { --bg: #0f172a; --fg: #e2e8f0; --muted: #94a3b8; }
-    body { background: radial-gradient(1200px 800px at 70% 10%, #1e293b 0%, #0b1224 50%, #060913 100%), var(--bg); color: var(--fg); }
-    .app { min-height: 100svh; display: grid; place-items: center; padding: 1.25rem; }
-    .glass { backdrop-filter: blur(12px); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.35); }
-    .cover { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 1rem; }
-    .queue { max-height: 65vh; overflow: auto; }
-    .list-group-item { background: transparent; color: var(--fg); border-color: rgba(255,255,255,0.08); }
-    .list-group-item.active { background: #1f2937; border-color: #334155; }
-    .btn-ctrl { width: 3rem; height: 3rem; border-radius: 999px; display: grid; place-items: center; }
-    input[type="range"]::-webkit-slider-thumb { cursor: pointer; }
-    .small-muted { color: var(--muted); font-size: .9rem; }
+    :root {
+      --bg: #0f172a;
+      --fg: #e2e8f0;
+      --muted: #94a3b8;
+    }
+
+    body {
+      background: radial-gradient(1200px 800px at 70% 10%, #1e293b 0%, #0b1224 50%, #060913 100%), var(--bg);
+      color: var(--fg);
+    }
+
+    .app {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 1.25rem;
+    }
+
+    .glass {
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .cover {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      border-radius: 1rem;
+    }
+
+    .queue {
+      max-height: 65vh;
+      overflow: auto;
+    }
+
+    .list-group-item {
+      background: transparent;
+      color: var(--fg);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .list-group-item.active {
+      background: #1f2937;
+      border-color: #334155;
+    }
+
+    .btn-ctrl {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      cursor: pointer;
+    }
+
+    .small-muted {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .dev-card {
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+    }
+
+    .dev-photo {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
   </style>
 </head>
+
 <body>
   <div class="app container">
     <div class="row w-100 g-4">
@@ -49,7 +120,7 @@
 
                 <!-- Barra de progresso -->
                 <div class="mb-2">
-                  <input disabled id="progress" type="range" min="0" max="100" value="0" class="form-range"/>
+                  <input disabled id="progress" type="range" min="0" max="100" value="0" class="form-range" />
                   <div class="d-flex justify-content-between small-muted">
                     <span id="currentTime">0:00</span>
                     <span id="duration">0:00</span>
@@ -58,9 +129,12 @@
 
                 <!-- Controles -->
                 <div class="d-flex align-items-center gap-3 my-2">
-                  <button id="prev" class="btn btn-outline-light btn-ctrl" title="Anterior"><i class="bi bi-skip-start-fill"></i></button>
-                  <button id="play" class="btn btn-light btn-ctrl" title="Play/Pause"><i class="bi bi-play-fill fs-4"></i></button>
-                  <button id="next" class="btn btn-outline-light btn-ctrl" title="Próxima"><i class="bi bi-skip-end-fill"></i></button>
+                  <button id="prev" class="btn btn-outline-light btn-ctrl" title="Anterior"><i
+                      class="bi bi-skip-start-fill"></i></button>
+                  <button id="play" class="btn btn-light btn-ctrl" title="Play/Pause"><i
+                      class="bi bi-play-fill fs-4"></i></button>
+                  <button id="next" class="btn btn-outline-light btn-ctrl" title="Próxima"><i
+                      class="bi bi-skip-end-fill"></i></button>
                 </div>
 
                 <!-- Extras -->
@@ -84,25 +158,25 @@
   <script>
     // ====== Config da API ======
     const API = {
-      atual: 'http://172.17.28.206/getMusic',
-      start: 'http://172.17.28.206/start',
-      pause: 'http://172.17.28.206/pause',
-      next: 'http://172.17.28.206/next',
-      previous: 'http://172.17.28.206/previous',
-      select: 'http://172.17.28.206/setMusic'
+      atual: 'http://172.17.8.46/getMusic',
+      start: 'http://172.17.8.46/start',
+      pause: 'http://172.17.8.46/pause',
+      next: 'http://172.17.8.46/next',
+      previous: 'http://172.17.8.46/previous',
+      select: 'http://172.17.8.46/setMusic'
     };
 
     // ====== Dataset local ======
     const tracks = [
-      { id: 1,  title: "Three Little Birds", artist: "Bob Marley & The Wailers", cover: "https://imagensserver.holdtechnologies.com/1.jpg",  durationSeconds: 192 },
-      { id: 2,  title: "Beat It", artist: "Michael Jackson", cover: "https://imagensserver.holdtechnologies.com/2.jpg",  durationSeconds: 258 },
-      { id: 3,  title: "Espantando Bagual", artist: "Mano Lima", cover: "https://imagensserver.holdtechnologies.com/3.jpg",  durationSeconds: 162 },
-      { id: 4,  title: "Die With A Smile", artist: "Bruno Mars e Lady Gaga", cover: "https://imagensserver.holdtechnologies.com/4.jpg",  durationSeconds: 252 },
-      { id: 5,  title: "Write This Down", artist: "Soul Chef",  cover: "https://imagensserver.holdtechnologies.com/5.jpg",  durationSeconds: 798 },
-      { id: 6,  title: "Don't Stay", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/6.jpg",  durationSeconds: 323 },
-      { id: 7,  title: "Don't Stop The Party", artist: "Black Eyed Peas", cover: "https://imagensserver.holdtechnologies.com/7.jpg",  durationSeconds: 213 },
-      { id: 8,  title: "Stayin Alive", artist: "Bee Gees",  cover: "https://imagensserver.holdtechnologies.com/8.jpg",  durationSeconds: 249 },
-      { id: 9,  title: "Dormi na Praça", artist: "Bruno e Marrone", cover: "https://imagensserver.holdtechnologies.com/9.jpg",  durationSeconds: 158 },
+      { id: 1, title: "Three Little Birds", artist: "Bob Marley & The Wailers", cover: "https://imagensserver.holdtechnologies.com/1.jpg", durationSeconds: 192 },
+      { id: 2, title: "Beat It", artist: "Michael Jackson", cover: "https://imagensserver.holdtechnologies.com/2.jpg", durationSeconds: 258 },
+      { id: 3, title: "Espantando Bagual", artist: "Mano Lima", cover: "https://imagensserver.holdtechnologies.com/3.jpg", durationSeconds: 162 },
+      { id: 4, title: "Die With A Smile", artist: "Bruno Mars e Lady Gaga", cover: "https://imagensserver.holdtechnologies.com/4.jpg", durationSeconds: 252 },
+      { id: 5, title: "Write This Down", artist: "Soul Chef", cover: "https://imagensserver.holdtechnologies.com/5.jpg", durationSeconds: 798 },
+      { id: 6, title: "Don't Stay", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/6.jpg", durationSeconds: 323 },
+      { id: 7, title: "Don't Stop The Party", artist: "Black Eyed Peas", cover: "https://imagensserver.holdtechnologies.com/7.jpg", durationSeconds: 213 },
+      { id: 8, title: "Stayin Alive", artist: "Bee Gees", cover: "https://imagensserver.holdtechnologies.com/8.jpg", durationSeconds: 249 },
+      { id: 9, title: "Dormi na Praça", artist: "Bruno e Marrone", cover: "https://imagensserver.holdtechnologies.com/9.jpg", durationSeconds: 158 },
       { id: 10, title: "Say It Right", artist: "Nelly Furtado", cover: "https://imagensserver.holdtechnologies.com/10.jpg", durationSeconds: 223 },
       { id: 11, title: "Not Like US", artist: "Kendrick Lamar", cover: "https://imagensserver.holdtechnologies.com/11.jpg", durationSeconds: 274 },
       { id: 12, title: "Riders on the Storm", artist: "Snoop Dogg and The Doors", cover: "https://imagensserver.holdtechnologies.com/12.jpg", durationSeconds: 372 },
@@ -134,7 +208,66 @@
       { id: 38, title: "I Hate Everything About You", artist: "Three Days Grace", cover: "https://imagensserver.holdtechnologies.com/38.jpg", durationSeconds: 219 },
       { id: 39, title: "From The Inside", artist: "Linkin Park", cover: "https://imagensserver.holdtechnologies.com/39.jpg", durationSeconds: 569 },
       { id: 40, title: "Mujeriego", artist: "Ryan Castro", cover: "https://imagensserver.holdtechnologies.com/40.jpg", durationSeconds: 142 },
-      { id: 40, title: "The Fate of Ophelia", artist: "Taylor Swift", cover: "https://imagensserver.holdtechnologies.com/41.jpg", durationSeconds: 231 }
+      { id: 41, title: "The Fate of Ophelia", artist: "Taylor Swift", cover: "https://imagensserver.holdtechnologies.com/41.jpg", durationSeconds: 231 },
+      { id: 42, title: "Danza Kuduro", artist: "Don Omar ft. Lucenzo", cover: "https://imagensserver.holdtechnologies.com/42.jpg", durationSeconds: 200 },
+      { id: 43, title: "Kenny G", artist: "Matuê", cover: "https://imagensserver.holdtechnologies.com/43.jpg", durationSeconds: 191 },
+      { id: 44, title: "Sequência Feiticeira", artist: "Pedro Sampaio feat MC GW, MC Rodrigo do CN, MC Jhey, MC Nito", cover: "https://imagensserver.holdtechnologies.com/44.jpg", durationSeconds: 131 },
+      { id: 45, title: "Montagem Xonada", artist: "Dj Samir, DJ Javi26 e MXZl", cover: "https://imagensserver.holdtechnologies.com/45.jpg", durationSeconds: 77 },
+      { id: 46, title: "Famosinha", artist: "Dj Caio Vieira, MC Rodrigo do CN e MC Meno K", cover: "https://imagensserver.holdtechnologies.com/46.jpg", durationSeconds: 136 },
+      { id: 47, title: "Coração Partido", artist: "Grupo Menos é Mais", cover: "https://imagensserver.holdtechnologies.com/47.jpg", durationSeconds: 196 },
+      { id: 48, title: "VAGABUNDO", artist: "Gusttavo Lima + Luis Fonsi", cover: "https://imagensserver.holdtechnologies.com/48.jpg", durationSeconds: 214 },
+      { id: 49, title: "Devolva-me Você Não me Ensinou A te Esquecer", artist: "Hugo & Guilherme", cover: "https://imagensserver.holdtechnologies.com/49.jpg", durationSeconds: 233 },
+      { id: 50, title: "MEGA CATUCA ELAS NO CLIMA", artist: "DJ Petroski", cover: "https://imagensserver.holdtechnologies.com/50.jpg", durationSeconds: 182 },
+      { id: 51, title: "Tô na Brasilia com o Zigão", artist: "Dj Zigão - Mc Roger", cover: "https://imagensserver.holdtechnologies.com/51.jpg", durationSeconds: 157 },
+      { id: 52, title: "Balada", artist: "Gusttavo Lima", cover: "https://imagensserver.holdtechnologies.com/52.jpg", durationSeconds: 205 },
+      { id: 53, title: "Eu quero tchu, Eu quero tcha", artist: "João Lucas & Marcelo", cover: "https://imagensserver.holdtechnologies.com/53.jpg", durationSeconds: 160 },
+      { id: 54, title: "Closer", artist: "The Chainsmokers ft. Halsey", cover: "https://imagensserver.holdtechnologies.com/54.jpg", durationSeconds: 248 },
+      { id: 55, title: "Havana", artist: "Camila Cabello ft. Young Thug", cover: "https://imagensserver.holdtechnologies.com/55.jpg", durationSeconds: 220 },
+      { id: 56, title: "Somebody That I Used To Know", artist: "Gotye ft. Kimbra", cover: "https://imagensserver.holdtechnologies.com/56.jpg", durationSeconds: 244 },
+      { id: 57, title: "Mi Gente", artist: "J Balvin, Willy William", cover: "https://imagensserver.holdtechnologies.com/57.jpg", durationSeconds: 187 },
+      { id: 58, title: "Amiga da Minha Mulher", artist: "Seu Jorge", cover: "https://imagensserver.holdtechnologies.com/58.jpg", durationSeconds: 250 },
+      { id: 59, title: "Olha a Explosão", artist: "Kevinho", cover: "https://imagensserver.holdtechnologies.com/59.jpg", durationSeconds: 164 },
+      { id: 60, title: "Gangam Style", artist: "PSY", cover: "https://imagensserver.holdtechnologies.com/60.jpg", durationSeconds: 221 },
+      { id: 61, title: "Tá Rocheda", artist: "Os Barões da Pisadinha", cover: "https://imagensserver.holdtechnologies.com/61.jpg", durationSeconds: 206 },
+      { id: 62, title: "Céu Azul", artist: "Charlie Brown Jr", cover: "https://imagensserver.holdtechnologies.com/62.jpg", durationSeconds: 201 },
+      { id: 63, title: "VIDINHA DE BALADA", artist: "Henrique e Juliano", cover: "https://imagensserver.holdtechnologies.com/63.jpg", durationSeconds: 187 },
+      { id: 64, title: "Formation", artist: "Beyoncé", cover: "https://imagensserver.holdtechnologies.com/64.jpg", durationSeconds: 208 },
+      { id: 65, title: "Call Me Maybe", artist: "Carly Rae Jepsen", cover: "https://imagensserver.holdtechnologies.com/65.jpg", durationSeconds: 199 },
+      { id: 66, title: "Bum Bum Tam Tam", artist: "MC Fioti", cover: "https://imagensserver.holdtechnologies.com/66.jpg", durationSeconds: 173 },
+      { id: 67, title: "Madri", artist: "Fernando & Sorocaba", cover: "https://imagensserver.holdtechnologies.com/67.jpg", durationSeconds: 242 },
+      { id: 68, title: "Cê que Sabe", artist: "Cristiano Araújo", cover: "https://imagensserver.holdtechnologies.com/68.jpg", durationSeconds: 197 },
+      { id: 69, title: "Fugidinha", artist: "Michel Teló", cover: "https://imagensserver.holdtechnologies.com/69.jpg", durationSeconds: 194 },
+      { id: 70, title: "Hoje Eu Vou Parar na Gaiola", artist: "MC Livinho ft. Rennan da Penha", cover: "https://imagensserver.holdtechnologies.com/70.jpg", durationSeconds: 179 },
+      { id: 71, title: "Carry On Wayward Son", artist: "Kansas", cover: "https://imagensserver.holdtechnologies.com/71.jpg", durationSeconds: 325 },
+      { id: 72, title: "Last Friday Night", artist: "Katy Perry", cover: "https://imagensserver.holdtechnologies.com/72.jpg", durationSeconds: 232 },
+      { id: 73, title: "PASSO BEM SOLTO", artist: "ATLXS", cover: "https://imagensserver.holdtechnologies.com/73.jpg", durationSeconds: 105 },
+      { id: 74, title: "MONTAGEM BAILÃO", artist: "Repsaj, MXZI e ATLXS", cover: "https://imagensserver.holdtechnologies.com/74.jpg", durationSeconds: 105 },
+      { id: 75, title: "Não Tô Valendo Nada", artist: "Henrique e Juliano part. João Neto & Frederico", cover: "https://imagensserver.holdtechnologies.com/75.jpg", durationSeconds: 199 },
+      { id: 76, title: "Pipoco", artist: "Ana Castela, Melody e Dj Chris No Beat", cover: "https://imagensserver.holdtechnologies.com/76.jpg", durationSeconds: 202 },
+      { id: 77, title: "Rabiosa", artist: "Shakira part. El Cata", cover: "https://imagensserver.holdtechnologies.com/77.jpg", durationSeconds: 170 },
+      { id: 78, title: "Vou Pra Santa Catarina", artist: "Terceira Dimensão", cover: "https://imagensserver.holdtechnologies.com/78.jpg", durationSeconds: 226 },
+      { id: 79, title: "A Culpa Não é Minha", artist: "MC Jacaré, MC Kevin O Chris", cover: "https://imagensserver.holdtechnologies.com/79.jpg", durationSeconds: 139 },
+      { id: 80, title: "Camaro Amarelo", artist: "Munhoz & Mariano", cover: "https://imagensserver.holdtechnologies.com/80.jpg", durationSeconds: 206 },
+      { id: 81, title: "Madagascar", artist: "Edy Lemond", cover: "https://imagensserver.holdtechnologies.com/81.jpg", durationSeconds: 220 },
+      { id: 82, title: "Ela Só Pensa Em Beijar", artist: "Leozinho, DJ Marlboro", cover: "https://imagensserver.holdtechnologies.com/82.jpg", durationSeconds: 249 },
+      { id: 83, title: "Pinxadão", artist: "Mc Jacaré, Hungria", cover: "https://imagensserver.holdtechnologies.com/83.jpg", durationSeconds: 140 },
+      { id: 84, title: "Balada Louca", artist: "Munhoz & Mariano", cover: "https://imagensserver.holdtechnologies.com/84.jpg", durationSeconds: 182 },
+      { id: 85, title: "Só Vou Beber Mais Hoje", artist: "Humberto & Ronaldo", cover: "https://imagensserver.holdtechnologies.com/85.jpg", durationSeconds: 173 },
+      { id: 86, title: "Eu Vou Pegar Você e Tãe", artist: "Munhoz & Mariano", cover: "https://imagensserver.holdtechnologies.com/86.jpg", durationSeconds: 186 },
+      { id: 87, title: "Everlong", artist: "Foo Fighters", cover: "https://imagensserver.holdtechnologies.com/87.jpg", durationSeconds: 252 },
+      { id: 88, title: "Rock That Body", artist: "Black Eyed Peas", cover: "https://imagensserver.holdtechnologies.com/88.jpg", durationSeconds: 271 },
+      { id: 89, title: "Come and Get Your Love", artist: "Redbone", cover: "https://imagensserver.holdtechnologies.com/89.jpg", durationSeconds: 209 },
+      { id: 90, title: "Trela", artist: "O Grilo", cover: "https://imagensserver.holdtechnologies.com/90.jpg", durationSeconds: 188 },
+      { id: 91, title: "Seven Nation Army", artist: "The White Stripes", cover: "https://imagensserver.holdtechnologies.com/91.jpg", durationSeconds: 240 },
+      { id: 92, title: "Mulher de Fases", artist: "Raimundos", cover: "https://imagensserver.holdtechnologies.com/92.jpg", durationSeconds: 218 },
+      { id: 93, title: "Money", artist: "The Drums", cover: "https://imagensserver.holdtechnologies.com/93.jpg", durationSeconds: 244 },
+      { id: 94, title: "Take Me Out", artist: "Franz Ferdinand", cover: "https://imagensserver.holdtechnologies.com/94.jpg", durationSeconds: 241 },
+      { id: 95, title: "Kids", artist: "MGMT", cover: "https://imagensserver.holdtechnologies.com/95.jpg", durationSeconds: 303 },
+      { id: 96, title: "Tuts Tuts Quero Ver Pensando Em Você", artist: "Edy Lemond part. DJ Lucas Beat", cover: "https://imagensserver.holdtechnologies.com/96.jpg", durationSeconds: 146 },
+      { id: 97, title: "In Da Club", artist: "50 Cent", cover: "https://imagensserver.holdtechnologies.com/97.jpg", durationSeconds: 195 },
+      { id: 98, title: "All Eyez On Me", artist: "2Pac", cover: "https://imagensserver.holdtechnologies.com/98.jpg", durationSeconds: 309 },
+      { id: 99, title: "Born To Die", artist: "Lana Del Rey", cover: "https://imagensserver.holdtechnologies.com/99.jpg", durationSeconds: 288 },
+      { id: 100, title: "Polo Do Bombom", artist: "Bombom & FabAmigos", cover: "https://imagensserver.holdtechnologies.com/100.jpg", durationSeconds: 287 }
     ];
 
     // ====== Helpers ======
@@ -170,7 +303,7 @@
     let index = 0; // índice da faixa atual
     let isPaused = true;
     let currentSec = 0; // tempo atual em segundos
-    let timer = null; // setInterval handler
+    let ignoreUpdatesUntil = 0;
 
     // ====== UI ======
     function fmtTime(sec) {
@@ -239,30 +372,31 @@
       }
     }
 
-    function startTimer() {
-      stopTimer();
-      timer = setInterval(() => {
-        if (isPaused) return;
-        currentSec += 1;
-        const t = tracks[index];
-        if (currentSec >= t.durationSeconds) {
-          currentSec = t.durationSeconds;
-          updateProgress();
-          onEnded();
-        } else {
-          updateProgress();
-        }
-      }, 1000);
-    }
+    async function updateFromESP() {
+      if (Date.now() < ignoreUpdatesUntil) return; // ignora sincronização temporária
+      try {
+        const data = await apiFetch(API.atual, { method: 'GET' }, 0);
+        if (!data) return;
 
-    function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+        const i = byId(data.id);
+        if (i >= 0 && i !== index) setTrack(i, true);
+
+        isPaused = !!Number(data.paused);
+        currentSec = Number(data.position) || 0;
+
+        setPlayButton(isPaused);
+        updateProgress();
+      } catch (e) {
+        console.warn("Falha ao sincronizar com ESP:", e);
+      }
+    }
+    setInterval(updateFromESP, 500);
 
     // ====== Controles ======
     async function start() {
       await apiFetch(API.start, { method: 'GET' });
       isPaused = false;
       setPlayButton(false);
-      startTimer();
     }
 
     async function pause() {
@@ -276,7 +410,7 @@
       setTrack(nextIndexOf(index));
       isPaused = false;
       setPlayButton(false);
-      startTimer();
+      ignoreUpdatesUntil = Date.now() + 1000;
     }
 
     async function previous() {
@@ -284,13 +418,13 @@
       setTrack(prevIndexOf(index));
       isPaused = false;
       setPlayButton(false);
-      startTimer();
+      ignoreUpdatesUntil = Date.now() + 1000;
     }
 
-    async function onEnded() {
-      // mesmo comportamento do botão Próxima
-      await next();
-    }
+ //   async function onEnded() {
+ //     // mesmo comportamento do botão Próxima
+ //     await next();
+ //   }
 
     // Eventos de botões
     playBtn.addEventListener('click', () => {
@@ -307,8 +441,9 @@
         const i = byId(data?.id);
         if (i >= 0) setTrack(i); else setTrack(0);
         isPaused = Number(data?.paused);
+        currentSec = Number(data?.posicao) || 0;
         setPlayButton(isPaused);
-        if (!isPaused) startTimer();
+        updateProgress();
       } catch (e) {
         // fallback local
         setTrack(0);
@@ -320,5 +455,27 @@
 
     init();
   </script>
+
+  <!-- Card de desenvolvedores -->
+  <div class="dev-card glass p-3 rounded-4 position-fixed bottom-0 end-0 m-3 d-flex align-items-center gap-3">
+    <div>
+      <div class="fw-semibold">Desenvolvido por FabAmigos</div>
+      <div class="d-flex align-items-center gap-3 mt-2 small-muted">
+        <div class="d-flex align-items-center gap-2">
+          <img src="https://imagensserver.holdtechnologies.com/dalton.jpg" alt="Dalton" class="dev-photo" />
+          <span>@dalton_adiers</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <img src="https://imagensserver.holdtechnologies.com/lucas.jpg" alt="Lucas" class="dev-photo" />
+          <span>@lucasfriedrichh</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <img src="https://imagensserver.holdtechnologies.com/otavio.jpg" alt="Otavio" class="dev-photo" />
+          <span>@otavio_ficagna</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
+
 </html>

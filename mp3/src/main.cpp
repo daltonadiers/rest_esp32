@@ -11,7 +11,7 @@
 BluetoothA2DPSource a2dp;
 File f;
 const int CS = 5;
-const int NUM_MUSICAS = 41;
+const int NUM_MUSICAS = 100;
 int tocando = 1;
 
 volatile bool paused = true;
@@ -137,8 +137,10 @@ void loop()
       } 
     }
     else if (cmd == "getMusic") {
+      unsigned long pos = 0;
+      if(f) pos = (f.position() - 44) / 176400;
       char msg[20];
-      snprintf(msg, sizeof(msg), "%d/%d", tocando, paused);
+      snprintf(msg, sizeof(msg), "%d/%d/%lu", tocando, paused, pos);
       Serial2.println(msg);
     }
   }
@@ -147,7 +149,11 @@ void loop()
   if (f && !f.available() && !paused)
   {
     f.close();
-    Serial.println("Fim da musica.");
+    Serial.println("Fim da musica. Passando para a próxima.");
+    tocando++;
+    if(tocando > NUM_MUSICAS)
+      tocando = 1;
+    open_wav_data();
   }
 
   unsigned long now = millis();
